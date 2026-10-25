@@ -14,7 +14,9 @@ import {
   FileText,
   UserCog,
   Sliders,
-  Sparkles
+  X,
+  Store,
+  ChevronLeft
 } from 'lucide-react';
 
 export type TabType = 
@@ -36,12 +38,16 @@ interface SidebarProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
   currentUser: User;
+  isOpenMobile?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
   currentUser,
+  isOpenMobile = false,
+  onCloseMobile,
 }) => {
   const isAdmin = currentUser.role === 'ADMIN';
 
@@ -72,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'inventory' as TabType,
       label: 'المخزن وتعريف الأصناف',
       icon: Boxes,
-      badge: 'مخزن واحد',
+      badge: 'مخزن موحد',
       requiresAdmin: false,
     },
     {
@@ -136,9 +142,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
-  return (
-    <aside className="w-72 bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-800 flex flex-col justify-between select-none shadow-sm transition-colors overflow-y-auto">
+  const handleItemClick = (tabId: TabType) => {
+    onSelectTab(tabId);
+    if (onCloseMobile) {
+      onCloseMobile();
+    }
+  };
+
+  const navContent = (
+    <div className="flex flex-col justify-between h-full">
       <div className="p-3.5 space-y-3">
+        {/* Mobile Header with Close button (visible only in mobile drawer) */}
+        <div className="flex items-center justify-between lg:hidden pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-2">
+            <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-black text-slate-900 dark:text-white text-base">قائمة النظام الرئيسية</span>
+          </div>
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 cursor-pointer"
+            aria-label="إغلاق القائمة"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* Warehouse Status Banner */}
         <div className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">نظام التشغيل المحلي</p>
@@ -158,14 +187,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const isRestricted = item.requiresAdmin && !isAdmin;
 
             if (isRestricted) {
-              return null; // hide or show locked
+              return null;
             }
 
             return (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onSelectTab(item.id)}
+                onClick={() => handleItemClick(item.id)}
                 className={`w-full min-h-[50px] px-3.5 py-2.5 rounded-xl text-right font-bold transition-all flex items-center justify-between gap-3 cursor-pointer ${
                   isActive
                     ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30'
@@ -179,15 +208,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span className="text-sm md:text-base leading-tight">{item.label}</span>
                 </div>
 
-                {item.badge && (
-                  <span className={`text-xs px-2 py-0.5 rounded-md font-mono font-bold ${
-                    isActive 
-                      ? 'bg-emerald-700/80 text-white border border-emerald-500' 
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
-                  }`}>
-                    {item.badge}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {item.badge && (
+                    <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono font-bold ${
+                      isActive 
+                        ? 'bg-emerald-700/80 text-white border border-emerald-500' 
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                  <ChevronLeft className={`w-4 h-4 lg:hidden ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                </div>
               </button>
             );
           })}
@@ -201,9 +233,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <span className="text-emerald-600 dark:text-emerald-400">مفعل محلياً ✓</span>
         </div>
         <p className="text-[11px] leading-relaxed">
-          إصدار مخصص لتجارة المواد الغذائية والمخازن بالجملة.
+          إصدار مهيأ بالكامل للهواتف الذكية، التابلت، وشاشات نقاط البيع.
         </p>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* 1. DESKTOP PERMANENT SIDEBAR (Hidden on mobile and tablet < 1024px) */}
+      <aside className="hidden lg:flex w-72 shrink-0 bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-800 flex-col justify-between select-none shadow-sm transition-colors overflow-y-auto">
+        {navContent}
+      </aside>
+
+      {/* 2. MOBILE & TABLET SLIDING OFF-CANVAS DRAWER (< 1024px) */}
+      {isOpenMobile && (
+        <div className="fixed inset-0 z-50 lg:hidden flex" dir="rtl" role="dialog" aria-modal="true">
+          {/* Backdrop Overlay */}
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs transition-opacity"
+            onClick={onCloseMobile}
+            aria-hidden="true"
+          />
+
+          {/* Sliding Drawer Panel */}
+          <aside className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 border-l border-slate-300 dark:border-slate-800 shadow-2xl flex flex-col z-10 overflow-y-auto animate-in slide-in-from-right duration-200">
+            {navContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 };

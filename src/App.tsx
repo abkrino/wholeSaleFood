@@ -19,6 +19,7 @@ import { BackupManager } from './components/backup/BackupManager';
 import { AuditTrail } from './components/audit/AuditTrail';
 import { PrintableInvoice } from './components/common/PrintableInvoice';
 import { LoginModal } from './components/auth/LoginModal';
+import { LayoutDashboard, ShoppingCart, Receipt, Boxes, Menu } from 'lucide-react';
 
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
@@ -30,6 +31,7 @@ export default function App() {
   const [editingInvoice, setEditingInvoice] = useState<SalesInvoice | null>(null);
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
 
   // Sync Data
   const refreshAll = () => {
@@ -99,6 +101,7 @@ export default function App() {
         onOpenSettingsModal={() => setCurrentTab('settings')}
         onLockScreen={() => setIsLocked(true)}
         onOpenLogin={() => setIsLoginOpen(true)}
+        onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)}
       />
 
       {/* Main Workspace (Sidebar + Dynamic Screen Area) */}
@@ -111,10 +114,12 @@ export default function App() {
             setCurrentTab(tab);
           }}
           currentUser={currentUser}
+          isOpenMobile={isMobileMenuOpen}
+          onCloseMobile={() => setIsMobileMenuOpen(false)}
         />
 
-        {/* Content Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-100/90 dark:bg-slate-950/90 transition-colors">
+        {/* Content Viewport with extra bottom padding on mobile/tablet */}
+        <main className="flex-1 overflow-y-auto p-2.5 sm:p-4 md:p-6 pb-24 lg:pb-6 bg-slate-100/90 dark:bg-slate-950/90 transition-colors">
           <div className="max-w-7xl mx-auto">
             {currentTab === 'dashboard' && (
               <Dashboard
@@ -223,6 +228,95 @@ export default function App() {
           </div>
         </main>
       </div>
+
+      {/* STICKY MOBILE & TABLET BOTTOM NAVIGATION BAR (< 1024px) */}
+      <nav 
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-300 dark:border-slate-800 py-1.5 px-2 flex justify-around items-center shadow-2xl transition-colors select-none"
+        aria-label="شريط التنقل السريع للهاتف والتابلت"
+      >
+        {/* 1. Dashboard */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('dashboard');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            currentTab === 'dashboard'
+              ? 'text-emerald-600 dark:text-emerald-400 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <LayoutDashboard className={`w-5 h-5 ${currentTab === 'dashboard' ? 'stroke-[2.5]' : ''}`} />
+          <span className="text-[10px] mt-0.5">الرئيسية</span>
+        </button>
+
+        {/* 2. POS (F1 - Hero Button) */}
+        <button
+          type="button"
+          onClick={() => {
+            setEditingInvoice(null);
+            setCurrentTab('pos');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`flex flex-col items-center justify-center min-w-[62px] py-1 px-1.5 rounded-xl text-xs transition-all cursor-pointer ${
+            currentTab === 'pos'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/30 font-black -translate-y-1'
+              : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 font-bold'
+          }`}
+        >
+          <ShoppingCart className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5">كاشير F1</span>
+        </button>
+
+        {/* 3. Invoices */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('invoices');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            currentTab === 'invoices'
+              ? 'text-emerald-600 dark:text-emerald-400 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Receipt className={`w-5 h-5 ${currentTab === 'invoices' ? 'stroke-[2.5]' : ''}`} />
+          <span className="text-[10px] mt-0.5">الفواتير</span>
+        </button>
+
+        {/* 4. Inventory */}
+        <button
+          type="button"
+          onClick={() => {
+            setCurrentTab('inventory');
+            setIsMobileMenuOpen(false);
+          }}
+          className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            currentTab === 'inventory'
+              ? 'text-emerald-600 dark:text-emerald-400 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Boxes className={`w-5 h-5 ${currentTab === 'inventory' ? 'stroke-[2.5]' : ''}`} />
+          <span className="text-[10px] mt-0.5">المخزن</span>
+        </button>
+
+        {/* 5. More / Full Menu Drawer */}
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen(true)}
+          className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            isMobileMenuOpen
+              ? 'text-emerald-600 dark:text-emerald-400 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px] mt-0.5">كل الأقسام</span>
+        </button>
+      </nav>
 
       {/* Printable Invoice Modal (Triggered on save or reprint) */}
       {activePrintInvoice && (

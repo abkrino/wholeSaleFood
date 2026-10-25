@@ -22,7 +22,8 @@ import {
   Store, 
   RefreshCw,
   Building2,
-  Tag
+  Tag,
+  Receipt
 } from 'lucide-react';
 
 interface PosSalesProps {
@@ -73,6 +74,10 @@ export const PosSales: React.FC<PosSalesProps> = ({
 
   // Profit Masking State (Password-like masked by default for managers)
   const [showProfitNumber, setShowProfitNumber] = useState<boolean>(false);
+
+  // Mobile / Tablet Tab View: 'INVOICE' vs 'CATALOG'
+  const [mobileView, setMobileView] = useState<'INVOICE' | 'CATALOG'>('INVOICE');
+  const [itemAddedToast, setItemAddedToast] = useState<string | null>(null);
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -223,6 +228,11 @@ export const PosSales: React.FC<PosSalesProps> = ({
       };
       setItems([...items, newItem]);
     }
+
+    setItemAddedToast(`تمت إضافة ${product.name} (${unit === 'CARTON' ? 'كرتونة' : 'قطعة'}) للفاتورة ✓`);
+    setTimeout(() => {
+      setItemAddedToast(null);
+    }, 2500);
   };
 
   // Barcode Fast Input Handler
@@ -432,17 +442,27 @@ export const PosSales: React.FC<PosSalesProps> = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5" dir="rtl">
+      {/* Toast Alert for Added Item (Mobile Friendly) */}
+      {itemAddedToast && (
+        <div className="lg:col-span-12 fixed top-16 left-4 right-4 z-50 flex justify-center pointer-events-none">
+          <div className="bg-emerald-700 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 border border-emerald-500 animate-in fade-in slide-in-from-top-2 duration-200">
+            <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />
+            <span>{itemAddedToast}</span>
+          </div>
+        </div>
+      )}
+
       {/* Editing Banner */}
       {editingInvoice && (
-        <div className="lg:col-span-12 bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-500 p-4 rounded-2xl flex items-center justify-between text-amber-900 dark:text-amber-200">
-          <div className="flex items-center gap-3 text-sm md:text-base font-black">
-            <RotateCcw className="w-5 h-5 animate-spin" />
+        <div className="lg:col-span-12 bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-500 p-3.5 sm:p-4 rounded-2xl flex items-center justify-between text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm md:text-base font-black">
+            <RotateCcw className="w-5 h-5 animate-spin shrink-0" />
             <span>أنت الآن في وضع تعديل الفاتورة رقم ({editingInvoice.invoiceNumber}) — العميل: {editingInvoice.customerName}</span>
           </div>
           {onCancelEdit && (
             <button
               onClick={onCancelEdit}
-              className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
+              className="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer shrink-0"
             >
               إلغاء التعديل
             </button>
@@ -450,18 +470,47 @@ export const PosSales: React.FC<PosSalesProps> = ({
         </div>
       )}
 
-      {/* LEFT / CENTER: Active Invoice Basket (7 cols) */}
-      <div className="lg:col-span-7 space-y-4">
+      {/* MOBILE & TABLET SCREEN MODE SWITCHER (< 1024px) */}
+      <div className="lg:hidden lg:col-span-12 flex items-center p-1.5 bg-slate-200 dark:bg-slate-800 rounded-2xl shadow-xs">
+        <button
+          type="button"
+          onClick={() => setMobileView('INVOICE')}
+          className={`flex-1 min-h-[46px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
+            mobileView === 'INVOICE'
+              ? 'bg-emerald-600 text-white shadow-md font-black'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/50'
+          }`}
+        >
+          <Receipt className="w-4 h-4" />
+          <span>سلة الفاتورة ({items.length}) • {total.toLocaleString('ar-EG', { minimumFractionDigits: 0 })} ج</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileView('CATALOG')}
+          className={`flex-1 min-h-[46px] py-2 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
+            mobileView === 'CATALOG'
+              ? 'bg-emerald-600 text-white shadow-md font-black'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100/50'
+          }`}
+        >
+          <Package className="w-4 h-4" />
+          <span>كتالوج الأصناف ({filteredCatalogProducts.length})</span>
+        </button>
+      </div>
+
+      {/* LEFT / CENTER: Active Invoice Basket (7 cols desktop, toggled on mobile) */}
+      <div className={`lg:col-span-7 space-y-4 ${mobileView === 'INVOICE' ? 'block' : 'hidden lg:block'}`}>
         {/* Customer Header Card with Live Search */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-4 shadow-sm transition-colors">
+        <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm transition-colors">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="w-full sm:w-2/3 relative">
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                   <span>العميل / المحل المستلم:</span>
                   {isDirectStoreCustomer && (
-                    <span className="text-[11px] bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-300 dark:border-amber-700">
-                      عميل المحل المباشر (نقدي فقط)
+                    <span className="text-[10px] sm:text-[11px] bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full font-bold border border-amber-300 dark:border-amber-700">
+                      عميل المحل (كاش فقط)
                     </span>
                   )}
                 </label>
@@ -957,9 +1006,9 @@ export const PosSales: React.FC<PosSalesProps> = ({
         </div>
       </div>
 
-      {/* RIGHT: Direct Interactive Unified Warehouse Catalog (5 cols) */}
-      <div className="lg:col-span-5 space-y-3">
-        <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-4 shadow-sm transition-colors flex flex-col h-[calc(100vh-140px)] min-h-[600px]">
+      {/* RIGHT: Direct Interactive Unified Warehouse Catalog (5 cols desktop, toggled on mobile) */}
+      <div className={`lg:col-span-5 space-y-3 ${mobileView === 'CATALOG' ? 'block' : 'hidden lg:block'}`}>
+        <div className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-3 sm:p-4 shadow-sm transition-colors flex flex-col h-auto lg:h-[calc(100vh-140px)] min-h-[420px] lg:min-h-[600px]">
           {/* Header */}
           <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
             <h3 className="font-black text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -1009,7 +1058,7 @@ export const PosSales: React.FC<PosSalesProps> = ({
           </div>
 
           {/* Product Items List (Click to add carton or piece) */}
-          <div className="mt-3 flex-1 overflow-y-auto space-y-2.5 pr-1">
+          <div className="mt-3 flex-1 overflow-y-auto space-y-2.5 pr-1 max-h-[500px] lg:max-h-none">
             {filteredCatalogProducts.length === 0 ? (
               <div className="p-8 text-center text-slate-500 dark:text-slate-400 text-xs font-medium">
                 لا توجد أصناف مطابقة للبحث في المخزن
@@ -1053,22 +1102,22 @@ export const PosSales: React.FC<PosSalesProps> = ({
                       </div>
                     </div>
 
-                    {/* Quick Add Buttons: Carton & Piece */}
+                    {/* Quick Add Buttons: Carton & Piece (accessible 44px height) */}
                     <div className="mt-2.5 grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => addItemToInvoice(prod, 'CARTON', 1)}
-                        className="bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-xs py-2 rounded-lg font-black cursor-pointer transition-colors flex items-center justify-center gap-1"
+                        className="min-h-[44px] bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 text-xs py-2 px-2 rounded-xl font-black cursor-pointer transition-colors flex items-center justify-center gap-1 active:scale-95"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-4 h-4" />
                         <span>+ كرتونة ({cartonPrice} ج)</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => addItemToInvoice(prod, 'PIECE', 1)}
-                        className="bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700 text-xs py-2 rounded-lg font-black cursor-pointer transition-colors flex items-center justify-center gap-1"
+                        className="min-h-[44px] bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700 text-xs py-2 px-2 rounded-xl font-black cursor-pointer transition-colors flex items-center justify-center gap-1 active:scale-95"
                       >
-                        <Plus className="w-3.5 h-3.5" />
+                        <Plus className="w-4 h-4" />
                         <span>+ قطعة ({piecePrice} ج)</span>
                       </button>
                     </div>
@@ -1078,6 +1127,25 @@ export const PosSales: React.FC<PosSalesProps> = ({
             )}
           </div>
         </div>
+
+        {/* Floating Quick Action Button on Mobile when in Catalog */}
+        {mobileView === 'CATALOG' && items.length > 0 && (
+          <div className="lg:hidden sticky bottom-24 z-20 flex justify-center py-2">
+            <button
+              type="button"
+              onClick={() => setMobileView('INVOICE')}
+              className="w-full max-w-sm py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer border-2 border-white/20 active:scale-95 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Receipt className="w-5 h-5" />
+                <span>عرض سلة الفاتورة ({items.length} صنف)</span>
+              </div>
+              <span className="font-mono text-sm sm:text-base font-black">
+                {total.toLocaleString('ar-EG', { minimumFractionDigits: 1 })} ج.م ←
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -88,7 +88,7 @@ export const SupplierLedger: React.FC<SupplierLedgerProps> = ({
     onRefreshData();
   };
 
-  const currentCashInDrawer = storage.getCurrentCashBalance();
+  const currentCashInDrawer = storage.calculateCurrentCashInDrawer();
 
   // Filtered suppliers
   const filteredSuppliers = suppliers.filter(s => {
@@ -152,13 +152,24 @@ export const SupplierLedger: React.FC<SupplierLedgerProps> = ({
       ? `${payNotes ? payNotes + ' • ' : ''}مصدر السحب بالسالب: [${sourceDescription}]`
       : payNotes;
 
+    let fundingEnum: 'DRAWER' | 'PERSONAL_LOAN' | 'DRAWER_NEGATIVE' | 'OTHER' = 'DRAWER';
+    if (allowNegative) {
+      if (sourceDescription.includes('سلفة') || sourceDescription.includes('شخصية')) {
+        fundingEnum = 'PERSONAL_LOAN';
+      } else if (sourceDescription.includes('سحب مباشر بالسالب')) {
+        fundingEnum = 'DRAWER_NEGATIVE';
+      } else {
+        fundingEnum = 'OTHER';
+      }
+    }
+
     const res = storage.recordSupplierPayment({
       supplierId: selectedSupplierId,
       amount: payAmount,
       notes: finalNotes,
       paidBy: currentUser.fullName,
       allowNegativeCash: allowNegative,
-      fundingSource: sourceDescription || undefined,
+      fundingSource: fundingEnum,
     });
 
     if (!res.success) {
