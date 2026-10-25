@@ -1,0 +1,8 @@
+{
+  "name": "Wholesale Food Distribution Management System - Egypt",
+  "description": "Technical Architecture & Operational System for Egyptian wholesale food distribution (confectionery, snacks, dry groceries) with offline SQLite, bilingual Arabic RTL interface, and dual-location inventory management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
